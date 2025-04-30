@@ -1,34 +1,16 @@
-# Python
+# Python artifacts
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 venv/
-ENV/
-env/
+
+# Environment variables
 .env
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IDE
+# IDE/Editor specific
 .idea/
 .vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Project specific
-data/raw/*
-data/processed/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep 
+*.swp 

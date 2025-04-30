@@ -1,85 +1,93 @@
--- Schema for AI Impact Tracking System
+-- Initial Schema Draft for AI Impact Tracking
+-- Target Database: Snowflake (or adjust as needed)
 
--- Industries table to track different sectors
+-- Enum type for metric categories (adjust values as needed)
+CREATE TYPE metric_category AS ENUM (
+    'VOLUME', 
+    'COST', 
+    'TIME', 
+    'QUALITY', 
+    'EFFICIENCY', 
+    'ADOPTION', 
+    'SATISFACTION', 
+    'OTHER'
+);
+
+-- Enum type for initiative status
+CREATE TYPE initiative_status AS ENUM (
+    'PLANNING',
+    'ACTIVE',
+    'COMPLETED',
+    'ON_HOLD',
+    'CANCELLED'
+);
+
+-- Table for Industries
 CREATE TABLE Industries (
-    industry_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    IndustryID SERIAL PRIMARY KEY,
+    IndustryName VARCHAR(255) UNIQUE NOT NULL,
+    Description TEXT
 );
 
--- Initiatives table to track AI/LLM projects
+-- Table for AI/LLM Initiatives
 CREATE TABLE Initiatives (
-    initiative_id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    description TEXT,
-    start_date DATE,
-    end_date DATE,
-    status VARCHAR(50) CHECK (status IN ('planned', 'in_progress', 'completed', 'on_hold')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    InitiativeID SERIAL PRIMARY KEY,
+    InitiativeName VARCHAR(255) NOT NULL,
+    Description TEXT,
+    StartDate DATE,
+    EndDate DATE,
+    Status initiative_status DEFAULT 'PLANNING',
+    Owner VARCHAR(100) -- Or link to a Users table
 );
 
--- Metrics table to define measurable outcomes
+-- Table for Metrics being tracked
 CREATE TABLE Metrics (
-    metric_id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    description TEXT,
-    unit VARCHAR(50),
-    category VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    MetricID SERIAL PRIMARY KEY,
+    MetricName VARCHAR(255) NOT NULL,
+    Description TEXT,
+    UnitOfMeasure VARCHAR(50),
+    Category metric_category,
+    IsHigherBetter BOOLEAN -- Indicates if a higher value is generally better
+);
+
+-- Table for Performance Outcomes (Time Series Data)
+-- This table links to both an Initiative and a Metric
+CREATE TABLE PerformanceOutcomes (
+    OutcomeID SERIAL PRIMARY KEY,
+    InitiativeID INT NOT NULL,
+    MetricID INT NOT NULL,
+    OutcomeDate DATE NOT NULL, -- Or TIMESTAMP for higher precision
+    OutcomeValue DECIMAL(18, 4), -- Adjust precision as needed
+    Notes TEXT,
+    DataSource VARCHAR(255),
+    LoadTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (InitiativeID) REFERENCES Initiatives(InitiativeID),
+    FOREIGN KEY (MetricID) REFERENCES Metrics(MetricID),
+    UNIQUE (InitiativeID, MetricID, OutcomeDate) -- Ensure uniqueness per initiative/metric/date
 );
 
 -- Junction table linking Initiatives to Industries
 CREATE TABLE InitiativeIndustries (
-    initiative_id INTEGER REFERENCES Initiatives(initiative_id),
-    industry_id INTEGER REFERENCES Industries(industry_id),
-    PRIMARY KEY (initiative_id, industry_id)
+    InitiativeID INT NOT NULL,
+    IndustryID INT NOT NULL,
+    PRIMARY KEY (InitiativeID, IndustryID),
+    FOREIGN KEY (InitiativeID) REFERENCES Initiatives(InitiativeID),
+    FOREIGN KEY (IndustryID) REFERENCES Industries(IndustryID)
 );
 
--- Junction table linking Initiatives to Metrics
-CREATE TABLE InitiativeMetrics (
-    initiative_id INTEGER REFERENCES Initiatives(initiative_id),
-    metric_id INTEGER REFERENCES Metrics(metric_id),
-    target_value NUMERIC,
-    target_date DATE,
-    PRIMARY KEY (initiative_id, metric_id)
-);
+-- Optional: Junction table linking Initiatives to specific Metrics directly (if needed beyond Outcomes)
+-- CREATE TABLE InitiativeMetrics (
+--     InitiativeID INT NOT NULL,
+--     MetricID INT NOT NULL,
+--     PRIMARY KEY (InitiativeID, MetricID),
+--     FOREIGN KEY (InitiativeID) REFERENCES Initiatives(InitiativeID),
+--     FOREIGN KEY (MetricID) REFERENCES Metrics(MetricID)
+-- );
 
--- Table for actual performance outcomes
-CREATE TABLE PerformanceOutcomes (
-    outcome_id SERIAL PRIMARY KEY,
-    initiative_id INTEGER REFERENCES Initiatives(initiative_id),
-    metric_id INTEGER REFERENCES Metrics(metric_id),
-    actual_value NUMERIC,
-    measurement_date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert initial data for Oil & Gas industry
-INSERT INTO Industries (name, description) 
-VALUES ('Oil & Gas', 'Oil and Gas industry including upstream, midstream, and downstream operations');
-
--- Insert initial initiative for Crude Oil Production Monitoring
-INSERT INTO Initiatives (name, description, status) 
-VALUES (
-    'Crude Oil Production Monitoring',
-    'AI-powered monitoring and prediction of crude oil production trends',
-    'in_progress'
-);
-
--- Insert initial metric for Crude Oil Production Volume
-INSERT INTO Metrics (name, description, unit, category) 
-VALUES (
-    'Crude Oil Production Volume',
-    'Monthly crude oil production volume in thousands of barrels per day',
-    'k bbl/day',
-    'production'
-);
-
--- Link initiative to industry
-INSERT INTO InitiativeIndustries (initiative_id, industry_id)
-VALUES (1, 1);
-
--- Link initiative to metric
-INSERT INTO InitiativeMetrics (initiative_id, metric_id)
-VALUES (1, 1); 
+-- Sample Data (Illustrative)
+-- INSERT INTO Industries (IndustryName, Description) VALUES ('Oil & Gas', 'Exploration, production, refining, and distribution of oil and natural gas.');
+-- INSERT INTO Initiatives (InitiativeName, Description, Status, Owner) VALUES ('Crude Oil Production Monitoring', 'Pilot project using EIA data for monitoring US crude production trends', 'ACTIVE', 'Project Lead');
+-- INSERT INTO Metrics (MetricName, UnitOfMeasure, Category, IsHigherBetter) VALUES ('Crude Oil Production Volume', 'Thousand Barrels', 'VOLUME', True);
+-- Note: PerformanceOutcomes data loaded via script.
+-- INSERT INTO InitiativeIndustries (InitiativeID, IndustryID) VALUES (1, 1); 
